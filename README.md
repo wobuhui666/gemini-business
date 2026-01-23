@@ -93,24 +93,34 @@ license: mit
 
 ## 🚀 快速开始
 
-### 方法一: Docker 部署
+### 方法一: Docker Compose 部署
+
+```bash
+# 1.下载 docker-compose.yml 文件
+curl -O https://raw.githubusercontent.com/linlee996/gemini-business/main/docker-compose.yml
+
+# 2.编辑 docker-compose.yml， environment 中填入管理员信息、google business 登录地址（其他配置可启动后配置）
+vim docker-compose.yml
+
+# 3.启动服务
+docker-compose up -d
+```
 
 ```bash
 # 1. 克隆项目
-git clone https://github.com/YOUR_USERNAME/gemini-business2api.git
-cd gemini-business2api
+git clone https://github.com/linlee996/gemini-business.git
+cd gemini-business
 
 # 2. 构建并运行
-docker build -t gemini-business2api .
+docker build -t gemini-business .
 docker run -d \
   -p 7860:7860 \
-  -e ACCOUNTS_CONFIG='[{"secure_c_ses":"your_cookie","csesidx":"your_idx","config_id":"your_config"}]' \
   -e PATH_PREFIX=path_prefix \
   -e ADMIN_KEY=your_admin_key \
   -e API_KEY=your_api_key \
   -e LOGO_URL=https://your-domain.com/logo.png \
   -e CHAT_URL=https://your-chat-app.com \
-  gemini-business2api
+  gemini-business
 ```
 
 ### 方法二: 本地运行
