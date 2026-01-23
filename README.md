@@ -15,9 +15,6 @@ license: mit
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 
-**快速部署到 HuggingFace Spaces:**
-
-[![Deploy to Spaces](https://huggingface.co/datasets/huggingface/badges/resolve/main/deploy-to-spaces-md.svg)](https://huggingface.co/spaces/xiaoyukkkk/gemini-business2api?duplicate=true)
 
 ## ✨ 功能特性
 
@@ -52,6 +49,7 @@ license: mit
 - ✅ **崩溃自动恢复** - Chrome 页面崩溃时自动开新标签页重试
 - ✅ **过期自动刷新** - 账户即将过期时自动刷新登录（每30分钟检查一次）
 - ✅ **Xvfb 虚拟显示器** - Docker 环境下无需真实显示器即可运行 Chrome
+- ✅ **代理池支持** - 支持配置代理池，避免 IP 限制，同时支持代理检测自动切换和重试（代理检测属于启动 chrome 前置检测）
 
 ### 性能优化
 - ⚡ **异步文件 I/O** - 避免阻塞事件循环，提升并发性能
@@ -119,14 +117,14 @@ docker run -d \
 
 ```bash
 # 1. 安装依赖
-pip install -r requirements.txt
+uv sync
 
 # 2. 配置环境变量
 cp .env.example .env
 # 编辑 .env 文件，填入实际配置
 
 # 3. 启动服务
-python main.py
+uv run main.py
 ```
 
 服务将在 `http://localhost:7860` 启动
