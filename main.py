@@ -231,6 +231,30 @@ def get_base_url(request: Request) -> str:
 
     return f"{forwarded_proto}://{forwarded_host}"
 
+def _reload_accounts_internal(log_prefix: str) -> int:
+    """统一的账户配置重载入口，便于复用"""
+    global multi_account_mgr
+    logger.info(f"{log_prefix} 开始重新加载账户配置")
+    multi_account_mgr = reload_accounts(
+        multi_account_mgr,
+        http_client,
+        USER_AGENT,
+        ACCOUNT_FAILURE_THRESHOLD,
+        RATE_LIMIT_COOLDOWN_SECONDS,
+        SESSION_CACHE_TTL_SECONDS,
+        global_stats
+    )
+    logger.info(f"{log_prefix} 账户配置已重新加载，当前账户数: {len(multi_account_mgr.accounts)}")
+    return len(multi_account_mgr.accounts)
+
+async def _reload_accounts_after_register(task):
+    """注册任务完成后触发账户配置重载"""
+    try:
+        count = _reload_accounts_internal("[REGISTER]")
+        logger.info(f"[REGISTER] 注册任务完成后已重载账户配置: {task.id} | accounts={count}")
+    except Exception as e:
+        logger.error(f"[REGISTER] 注册完成后重载失败: {str(e)}")
+
 # ---------- 常量定义 ----------
 USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36"
 
@@ -384,6 +408,7 @@ async def startup_event():
             asyncio.create_task(login_service.start_polling())
             logger.info("[SYSTEM] 账户过期检查轮询已启动（间隔: 30分钟）")
             register_service = get_register_service()
+            register_service.set_on_task_finished(_reload_accounts_after_register)
             asyncio.create_task(register_service.start_cron_polling())
             logger.info("[SYSTEM] 自动注册定时任务已启动")
         except Exception as e:
@@ -1095,20 +1120,9 @@ async def admin_check_and_refresh(request: Request):
 @require_login()
 async def admin_reload_accounts(request: Request):
     """重新加载账户配置（用于注册完成后热更新）"""
-    global multi_account_mgr
     try:
-        logger.info("[ADMIN] 开始重新加载账户配置")
-        multi_account_mgr = reload_accounts(
-            multi_account_mgr,
-            http_client,
-            USER_AGENT,
-            ACCOUNT_FAILURE_THRESHOLD,
-            RATE_LIMIT_COOLDOWN_SECONDS,
-            SESSION_CACHE_TTL_SECONDS,
-            global_stats
-        )
-        logger.info(f"[ADMIN] 账户配置已重新加载，当前账户数: {len(multi_account_mgr.accounts)}")
-        return {"status": "success", "message": f"已重新加载 {len(multi_account_mgr.accounts)} 个账户"}
+        count = _reload_accounts_internal("[ADMIN]")
+        return {"status": "success", "message": f"已重新加载 {count} 个账户"}
     except Exception as e:
         logger.error(f"[ADMIN] 重新加载账户失败: {str(e)}")
         raise HTTPException(500, f"重新加载失败: {str(e)}")

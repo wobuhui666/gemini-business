@@ -17,7 +17,7 @@ from datetime import datetime
 from enum import Enum
 from pathlib import Path
 from string import ascii_letters, digits
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict, Any, Callable, Awaitable
 
 import requests
 from dotenv import load_dotenv
@@ -192,6 +192,7 @@ class RegisterService:
         self._cron_cache_expr: Optional[str] = None
         self._cron_cache: Optional[Dict[str, Any]] = None
         self._stop_requested = False  # 停止标志
+        self._on_task_finished: Optional[Callable[[RegisterTask], Awaitable[None]]] = None
         # 数据目录配置（与 main.py 保持一致）
         if os.path.exists("/data"):
             self.output_dir = Path("/data")
@@ -204,6 +205,10 @@ class RegisterService:
 
         # 指定的域名（用于批量注册时指定域名）
         self._specified_domain: Optional[str] = None
+
+    def set_on_task_finished(self, callback: Optional[Callable[[RegisterTask], Awaitable[None]]]):
+        """设置注册任务完成回调（用于触发热更新）"""
+        self._on_task_finished = callback
 
     @property
     def auth_config(self) -> GeminiAuthConfig:
@@ -409,6 +414,11 @@ class RegisterService:
             task.finished_at = time.time()
             self._current_task_id = None
             self._stop_requested = False  # 重置停止标志
+            if self._on_task_finished and task.success_count > 0:
+                try:
+                    await self._on_task_finished(task)
+                except Exception as e:
+                    logger.error(f"[REGISTER] 注册完成后回调失败: {e}")
     
     def get_task(self, task_id: str) -> Optional[RegisterTask]:
         """获取任务状态"""
