@@ -22,6 +22,10 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      # 构建多平台镜像（如 arm64）必须安装 QEMU
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -50,9 +54,12 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
+          # 仅在非 PR（即 push 到 main 或 tag）时推送
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          platforms: linux/amd64
+          # 同时支持多种架构
+          platforms: linux/amd64,linux/arm64
+          # 使用 GitHub Actions 的原生缓存以加快后续构建速度
           cache-from: type=gha
           cache-to: type=gha,mode=max
